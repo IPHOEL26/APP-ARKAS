@@ -8,7 +8,7 @@
   3. Untuk simpan draft dari GitHub Pages, tambahkan Patch_CodeGS_JSONP_Save.gs ke Code.gs.
 */
 
-const DEFAULT_GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwOowueT2KRACUFZ1MqfIGz1SxP2Q-z0A7hvzpRL9Y6_ZUPWGwjP-WxjbNiYBcxdXnGRg/exec";
+const DEFAULT_GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzfp4ZMFOElBwXDF_xfGwKxEOHylk2EuBLXcmMbKsjyHofZYx6mZgmGIs4VYRYA-6DVzg/exec;
 const STORAGE_KEYS = {
   gasUrl: "arkas_gas_web_app_url",
   draft: "arkas_draft_items_v1",
