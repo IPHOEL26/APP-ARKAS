@@ -1,6 +1,6 @@
 /*******************************************************
- * SCRIPT.JS - FRONTEND GITHUB PAGES
- * Aplikasi Bantu Operator ARKAS
+ * SCRIPT.JS - FRONTEND GITHUB PAGES V2
+ * Tampilan premium untuk Aplikasi Bantu Operator ARKAS
  *******************************************************/
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxGJqF6qbxJDHnCSMHlXwkDGYA6QEiR2zDy1noOETIB5zIuulx0E8y_qxblvy9_udZqCQ/exec';
@@ -19,6 +19,7 @@ const els = {};
 window.addEventListener('DOMContentLoaded', () => {
   bindElements();
   bindEvents();
+  initUi();
   initApp();
 });
 
@@ -57,23 +58,48 @@ function bindElements() {
     'summaryBelanja',
     'summarySisa',
     'summaryItem',
+    'summaryDanaSide',
+    'summaryBelanjaSide',
+    'summarySisaSide',
+    'summaryItemSide',
+    'heroSchool',
+    'heroJob',
+    'heroTotalBelanja',
+    'validationHint',
+    'jobInsight',
     'daftarItemBody',
     'saveMessage',
     'btnSimpanPengajuan',
-    'btnKosongkanDaftar'
+    'btnKosongkanDaftar',
+    'toastContainer',
+    'currentYear'
   ];
 
-  ids.forEach(id => {
-    els[id] = document.getElementById(id);
-  });
+  ids.forEach(id => { els[id] = document.getElementById(id); });
 }
 
 function bindEvents() {
   els.btnCariReferensi.addEventListener('click', searchReference);
-
   els.keywordReferensi.addEventListener('keydown', event => {
     if (event.key === 'Enter') searchReference();
   });
+
+  document.querySelectorAll('.keyword-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      els.keywordReferensi.value = btn.dataset.keyword || '';
+      searchReference();
+    });
+  });
+
+  document.querySelectorAll('.job-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      els.jenisPekerjaan.value = btn.dataset.job || 'Input Baru';
+      syncJobTypeUi();
+    });
+  });
+
+  els.namaSekolah.addEventListener('change', syncHeroSummary);
+  els.jenisPekerjaan.addEventListener('change', syncJobTypeUi);
 
   els.modeManual.addEventListener('change', handleManualModeChange);
 
@@ -95,29 +121,35 @@ function bindEvents() {
   els.totalDanaMasuk.addEventListener('input', updateSummary);
 
   els.btnTambahItem.addEventListener('click', addItem);
-  els.btnResetItem.addEventListener('click', resetItemForm);
+  els.btnResetItem.addEventListener('click', () => resetItemForm({ keepIdentity: true }));
   els.btnSimpanPengajuan.addEventListener('click', savePengajuan);
   els.btnKosongkanDaftar.addEventListener('click', clearItems);
 }
 
+function initUi() {
+  if (els.currentYear) els.currentYear.textContent = String(new Date().getFullYear());
+  syncJobTypeUi();
+  syncHeroSummary();
+  updateSummary();
+}
+
 async function initApp() {
-  setConnectionStatus('warning', 'Menghubungkan...');
+  setConnectionStatus('warning', 'Menghubungkan backend...');
 
   try {
     const ping = await callGas('ping');
+    if (!ping.success) throw new Error(ping.message || 'Backend tidak merespons.');
 
-    if (!ping.success) {
-      throw new Error(ping.message || 'Backend tidak merespons.');
-    }
-
-    setConnectionStatus('ok', 'Backend aktif');
+    setConnectionStatus('ok', 'Backend aktif & siap digunakan');
     await loadSchools();
     await loadRekeningOptions();
     await loadKegiatanOptions();
     updateSummary();
+    showToast('Backend berhasil terhubung.', 'ok');
   } catch (error) {
-    setConnectionStatus('error', 'Backend gagal');
+    setConnectionStatus('error', 'Backend gagal terhubung');
     showSaveMessage(error.message, 'error');
+    showToast(error.message, 'error');
   }
 }
 
@@ -137,7 +169,7 @@ function callGas(action, params = {}) {
     const timeout = setTimeout(() => {
       cleanup();
       reject(new Error('Koneksi ke backend terlalu lama.'));
-    }, 20000);
+    }, 25000);
 
     window[callbackName] = data => {
       cleanup();
@@ -146,7 +178,7 @@ function callGas(action, params = {}) {
 
     script.onerror = () => {
       cleanup();
-      reject(new Error('Gagal memuat response dari Google Apps Script.'));
+      reject(new Error('Gagal memuat respons dari Google Apps Script.'));
     };
 
     function cleanup() {
@@ -165,15 +197,40 @@ function setConnectionStatus(type, text) {
   els.connectionStatus.innerHTML = `<span class="status-dot ${dotClass}"></span><span>${escapeHtml(text)}</span>`;
 }
 
+function syncJobTypeUi() {
+  const current = els.jenisPekerjaan.value || 'Input Baru';
+
+  document.querySelectorAll('.job-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.job === current);
+  });
+
+  const insightMap = {
+    'Input Baru': {
+      html: 'Mode <strong>Input Baru</strong>: digunakan untuk menyusun belanja baru sesuai dana masuk atau pagu yang tersedia.'
+    },
+    'Pergeseran': {
+      html: 'Mode <strong>Pergeseran</strong>: digunakan untuk menggeser rencana dalam satu lingkup anggaran yang sejenis. Periksa kembali agar tidak salah akun.'
+    },
+    'Perubahan': {
+      html: 'Mode <strong>Perubahan</strong>: digunakan ketika sekolah perlu menyesuaikan rencana karena kebutuhan riil yang berubah dari rencana awal.'
+    }
+  };
+
+  els.jobInsight.innerHTML = insightMap[current]?.html || insightMap['Input Baru'].html;
+  syncHeroSummary();
+}
+
+function syncHeroSummary() {
+  els.heroSchool.textContent = els.namaSekolah.value || 'Belum dipilih';
+  els.heroJob.textContent = els.jenisPekerjaan.value || 'Input Baru';
+  els.heroTotalBelanja.textContent = els.summaryBelanja.textContent || 'Rp 0';
+}
+
 async function loadSchools() {
   const result = await callGas('getSchools');
-
-  if (!result.success) {
-    throw new Error(result.message || 'Gagal mengambil daftar sekolah.');
-  }
+  if (!result.success) throw new Error(result.message || 'Gagal mengambil daftar sekolah.');
 
   els.namaSekolah.innerHTML = '<option value="">Pilih sekolah</option>';
-
   result.data.forEach(school => {
     const option = document.createElement('option');
     option.value = school.namaSekolah;
@@ -196,15 +253,8 @@ async function searchReference() {
   els.hasilReferensi.innerHTML = '';
 
   try {
-    const result = await callGas('searchReference', {
-      q: keyword,
-      limit: 30
-    });
-
-    if (!result.success) {
-      throw new Error(result.message || 'Pencarian gagal.');
-    }
-
+    const result = await callGas('searchReference', { q: keyword, limit: 30 });
+    if (!result.success) throw new Error(result.message || 'Pencarian gagal.');
     renderSearchResults(result.data || [], result.totalFound || 0);
   } catch (error) {
     els.searchInfo.textContent = error.message;
@@ -214,11 +264,15 @@ async function searchReference() {
 }
 
 function renderSearchResults(data, totalFound) {
-  els.searchInfo.textContent = `Ditemukan ${totalFound} referensi. Ditampilkan ${data.length}.`;
+  els.searchInfo.textContent = `Ditemukan ${totalFound} referensi. Ditampilkan ${data.length} hasil terbaik.`;
   els.hasilReferensi.innerHTML = '';
 
   if (!data.length) {
-    els.hasilReferensi.innerHTML = '<div class="result-card">Tidak ada referensi yang cocok. Gunakan input manual.</div>';
+    els.hasilReferensi.innerHTML = `
+      <div class="result-card">
+        <h3 class="result-title">Tidak ada referensi yang cocok.</h3>
+        <p class="section-desc">Gunakan mode input manual jika uraian belanja belum tersedia di referensi.</p>
+      </div>`;
     return;
   }
 
@@ -226,21 +280,25 @@ function renderSearchResults(data, totalFound) {
     const card = document.createElement('div');
     card.className = 'result-card';
     card.innerHTML = `
-      <h3>${escapeHtml(item.uraianBarangJasa || '-')}</h3>
-      <div class="meta">
-        <div><strong>Kode Rekening:</strong> ${escapeHtml(item.kodeRekening || '-')} - ${escapeHtml(item.rekeningBelanja || '-')}</div>
-        <div><strong>Kegiatan:</strong> ${escapeHtml(item.kodeKegiatan || '-')} - ${escapeHtml(item.kegiatanDisarankan || '-')}</div>
-        <div><strong>Satuan/Harga:</strong> ${escapeHtml(item.satuan || '-')} / ${formatRupiah(item.hargaReferensi)}</div>
+      <h3 class="result-title">${escapeHtml(item.uraianBarangJasa || '-')}</h3>
+      <div class="meta-grid">
+        <div class="meta-chip"><strong>Kode Rekening</strong><span>${escapeHtml(item.kodeRekening || '-')}</span></div>
+        <div class="meta-chip"><strong>Rekening</strong><span>${escapeHtml(item.rekeningBelanja || '-')}</span></div>
+        <div class="meta-chip"><strong>Kode Kegiatan</strong><span>${escapeHtml(item.kodeKegiatan || '-')}</span></div>
+        <div class="meta-chip"><strong>Kegiatan</strong><span>${escapeHtml(item.kegiatanDisarankan || '-')}</span></div>
+        <div class="meta-chip"><strong>Satuan</strong><span>${escapeHtml(item.satuan || '-')}</span></div>
+        <div class="meta-chip"><strong>Harga Referensi</strong><span>${formatRupiah(item.hargaReferensi)}</span></div>
       </div>
+      <div class="result-actions"></div>
     `;
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'btn primary';
+    button.className = 'btn btn-primary';
     button.textContent = 'Pilih Referensi Ini';
     button.addEventListener('click', () => selectReference(item));
 
-    card.appendChild(button);
+    card.querySelector('.result-actions').appendChild(button);
     els.hasilReferensi.appendChild(card);
   });
 }
@@ -257,25 +315,31 @@ function selectReference(item) {
   els.hargaSatuan.value = toNumber(item.hargaReferensi) || '';
   updateSelectedReferenceBox();
   updateItemTotalPreview();
+  showToast('Referensi berhasil dipilih.', 'info');
 
-  window.scrollTo({ top: els.selectedReferenceBox.offsetTop - 80, behavior: 'smooth' });
+  window.scrollTo({ top: els.selectedReferenceBox.getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' });
 }
 
 function updateSelectedReferenceBox() {
   const item = state.selectedReference;
 
   if (!item) {
-    els.selectedReferenceBox.className = 'selected-box empty';
+    els.selectedReferenceBox.className = 'reference-highlight empty';
     els.selectedReferenceBox.textContent = 'Belum ada referensi yang dipilih.';
     return;
   }
 
-  els.selectedReferenceBox.className = 'selected-box';
+  els.selectedReferenceBox.className = 'reference-highlight';
   els.selectedReferenceBox.innerHTML = `
     <strong>${escapeHtml(item.uraianBarangJasa || '-')}</strong><br>
     Kode Rekening: ${escapeHtml(item.kodeRekening || '-')} - ${escapeHtml(item.rekeningBelanja || '-')}<br>
     Kegiatan: ${escapeHtml(item.kodeKegiatan || '-')} - ${escapeHtml(item.kegiatanDisarankan || '-')}<br>
-    Kode Belanja: ${escapeHtml(item.kodeBelanja || '-')} | ID Barang: ${escapeHtml(item.idBarang || '-')}
+    <div class="badge-row">
+      <span class="small-badge">Satuan: ${escapeHtml(item.satuan || '-')}</span>
+      <span class="small-badge">Harga Referensi: ${formatRupiah(item.hargaReferensi)}</span>
+      <span class="small-badge">Kode Belanja: ${escapeHtml(item.kodeBelanja || '-')}</span>
+      <span class="small-badge">ID Barang: ${escapeHtml(item.idBarang || '-')}</span>
+    </div>
   `;
 }
 
@@ -286,6 +350,7 @@ function handleManualModeChange() {
   if (manual) {
     state.selectedReference = null;
     updateSelectedReferenceBox();
+    showToast('Mode input manual aktif.', 'info');
   }
 }
 
@@ -294,15 +359,8 @@ async function loadRekeningOptions() {
   els.btnCariRekening.disabled = true;
 
   try {
-    const result = await callGas('getRekening', {
-      q: keyword,
-      limit: 100
-    });
-
-    if (!result.success) {
-      throw new Error(result.message || 'Gagal mengambil rekening.');
-    }
-
+    const result = await callGas('getRekening', { q: keyword, limit: 100 });
+    if (!result.success) throw new Error(result.message || 'Gagal mengambil rekening.');
     state.rekeningOptions = result.data || [];
     renderRekeningOptions();
   } catch (error) {
@@ -314,7 +372,6 @@ async function loadRekeningOptions() {
 
 function renderRekeningOptions() {
   els.pilihRekening.innerHTML = '<option value="">Pilih kode rekening</option>';
-
   state.rekeningOptions.forEach((item, index) => {
     const option = document.createElement('option');
     option.value = String(index);
@@ -333,15 +390,8 @@ async function loadKegiatanOptions() {
   els.btnCariKegiatan.disabled = true;
 
   try {
-    const result = await callGas('getKegiatan', {
-      q: keyword,
-      limit: 100
-    });
-
-    if (!result.success) {
-      throw new Error(result.message || 'Gagal mengambil kegiatan.');
-    }
-
+    const result = await callGas('getKegiatan', { q: keyword, limit: 100 });
+    if (!result.success) throw new Error(result.message || 'Gagal mengambil kegiatan.');
     state.kegiatanOptions = result.data || [];
     renderKegiatanOptions();
   } catch (error) {
@@ -353,7 +403,6 @@ async function loadKegiatanOptions() {
 
 function renderKegiatanOptions() {
   els.pilihKegiatan.innerHTML = '<option value="">Pilih kegiatan</option>';
-
   state.kegiatanOptions.forEach((item, index) => {
     const option = document.createElement('option');
     option.value = String(index);
@@ -372,40 +421,14 @@ function addItem() {
   const hargaSatuan = toNumber(els.hargaSatuan.value);
   const jumlah = toNumber(els.jumlah.value);
 
-  if (!els.namaSekolah.value) {
-    alert('Pilih nama sekolah terlebih dahulu.');
-    return;
-  }
-
-  if (!manual && !state.selectedReference) {
-    alert('Pilih referensi belanja terlebih dahulu, atau aktifkan input manual.');
-    return;
-  }
-
-  if (manual && !els.uraianManual.value.trim()) {
-    alert('Isi uraian manual terlebih dahulu.');
-    return;
-  }
-
-  if (manual && !state.selectedRekening) {
-    alert('Pilih kode rekening untuk input manual.');
-    return;
-  }
-
-  if (manual && !state.selectedKegiatan) {
-    alert('Pilih kegiatan untuk input manual.');
-    return;
-  }
-
-  if (!hargaSatuan || hargaSatuan < 0) {
-    alert('Isi harga satuan dengan benar.');
-    return;
-  }
-
-  if (!jumlah || jumlah <= 0) {
-    alert('Isi jumlah dengan benar.');
-    return;
-  }
+  if (!els.namaSekolah.value) return notifyValidation('Pilih nama sekolah terlebih dahulu.');
+  if (!manual && !state.selectedReference) return notifyValidation('Pilih referensi belanja terlebih dahulu, atau aktifkan input manual.');
+  if (manual && !els.uraianManual.value.trim()) return notifyValidation('Isi uraian manual terlebih dahulu.');
+  if (manual && !state.selectedRekening) return notifyValidation('Pilih kode rekening untuk input manual.');
+  if (manual && !state.selectedKegiatan) return notifyValidation('Pilih kegiatan untuk input manual.');
+  if (!els.bulanBelanja.value) return notifyValidation('Pilih bulan belanja terlebih dahulu.');
+  if (!hargaSatuan || hargaSatuan < 0) return notifyValidation('Isi harga satuan dengan benar.');
+  if (!jumlah || jumlah <= 0) return notifyValidation('Isi jumlah dengan benar.');
 
   let item;
 
@@ -454,26 +477,39 @@ function addItem() {
   renderItems();
   updateSummary();
   resetItemForm({ keepIdentity: true });
+  showToast('Item berhasil ditambahkan ke daftar.', 'ok');
 }
 
 function renderItems() {
   els.daftarItemBody.innerHTML = '';
 
   if (!state.items.length) {
-    els.daftarItemBody.innerHTML = '<tr><td colspan="10" class="empty-table">Belum ada item belanja.</td></tr>';
+    els.daftarItemBody.innerHTML = `
+      <tr>
+        <td colspan="10" class="empty-table">
+          <div class="empty-state">
+            <div class="empty-emoji">🗂️</div>
+            <div>
+              <strong>Belum ada item belanja.</strong>
+              <p>Tambahkan item dari referensi atau gunakan input manual.</p>
+            </div>
+          </div>
+        </td>
+      </tr>`;
     return;
   }
 
   state.items.forEach((item, index) => {
-    const uraian = item.statusReferensi === 'Manual'
-      ? item.uraianManual
-      : item.uraianBarangJasa;
+    const uraian = item.statusReferensi === 'Manual' ? item.uraianManual : item.uraianBarangJasa;
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${index + 1}</td>
       <td>${escapeHtml(item.bulanBelanja || '-')}</td>
-      <td>${escapeHtml(uraian || '-')}</td>
+      <td>
+        <strong>${escapeHtml(uraian || '-')}</strong>
+        <div class="item-pill">${escapeHtml(item.statusReferensi || '-')}</div>
+      </td>
       <td>${escapeHtml(item.kodeRekening || '-')}<br>${escapeHtml(item.rekeningBelanja || '')}</td>
       <td>${escapeHtml(item.kodeKegiatan || '-')}<br>${escapeHtml(item.kegiatan || '')}</td>
       <td>${escapeHtml(item.satuan || '-')}</td>
@@ -485,12 +521,11 @@ function renderItems() {
     const actionTd = document.createElement('td');
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
-    deleteBtn.className = 'btn danger';
+    deleteBtn.className = 'btn btn-danger';
     deleteBtn.textContent = 'Hapus';
     deleteBtn.addEventListener('click', () => removeItem(index));
     actionTd.appendChild(deleteBtn);
     tr.appendChild(actionTd);
-
     els.daftarItemBody.appendChild(tr);
   });
 }
@@ -499,33 +534,22 @@ function removeItem(index) {
   state.items.splice(index, 1);
   renderItems();
   updateSummary();
+  showToast('Item berhasil dihapus.', 'info');
 }
 
 function clearItems() {
   if (!state.items.length) return;
-
   if (!confirm('Kosongkan seluruh daftar belanja?')) return;
-
   state.items = [];
   renderItems();
   updateSummary();
+  showToast('Seluruh daftar berhasil dikosongkan.', 'info');
 }
 
 async function savePengajuan() {
-  if (!els.namaSekolah.value) {
-    alert('Nama sekolah wajib dipilih.');
-    return;
-  }
-
-  if (!els.jenisPekerjaan.value) {
-    alert('Jenis pekerjaan wajib dipilih.');
-    return;
-  }
-
-  if (!state.items.length) {
-    alert('Belum ada item belanja yang akan disimpan.');
-    return;
-  }
+  if (!els.namaSekolah.value) return notifyValidation('Nama sekolah wajib dipilih.');
+  if (!els.jenisPekerjaan.value) return notifyValidation('Jenis pekerjaan wajib dipilih.');
+  if (!state.items.length) return notifyValidation('Belum ada item belanja yang akan disimpan.');
 
   const payload = {
     namaSekolah: els.namaSekolah.value,
@@ -542,20 +566,17 @@ async function savePengajuan() {
   showSaveMessage('Menyimpan pengajuan ke Google Sheet...', '');
 
   try {
-    const result = await callGas('savePengajuan', {
-      payload: JSON.stringify(payload)
-    });
-
-    if (!result.success) {
-      throw new Error(result.message || 'Gagal menyimpan pengajuan.');
-    }
+    const result = await callGas('savePengajuan', { payload: JSON.stringify(payload) });
+    if (!result.success) throw new Error(result.message || 'Gagal menyimpan pengajuan.');
 
     showSaveMessage(`Berhasil disimpan. ID Pengajuan: ${result.idPengajuan}. Total item: ${result.totalItems}.`, 'ok');
+    showToast('Pengajuan berhasil disimpan ke Google Sheet.', 'ok');
     state.items = [];
     renderItems();
     updateSummary();
   } catch (error) {
     showSaveMessage(error.message, 'error');
+    showToast(error.message, 'error');
   } finally {
     els.btnSimpanPengajuan.disabled = false;
   }
@@ -599,17 +620,58 @@ function updateSummary() {
   const totalDana = toNumber(els.totalDanaMasuk.value);
   const totalBelanja = state.items.reduce((sum, item) => sum + toNumber(item.totalBelanja), 0);
   const sisa = totalDana - totalBelanja;
+  const sisaText = formatRupiah(sisa);
 
   els.summaryDana.textContent = formatRupiah(totalDana);
   els.summaryBelanja.textContent = formatRupiah(totalBelanja);
-  els.summarySisa.textContent = formatRupiah(sisa);
+  els.summarySisa.textContent = sisaText;
   els.summaryItem.textContent = String(state.items.length);
+
+  els.summaryDanaSide.textContent = formatRupiah(totalDana);
+  els.summaryBelanjaSide.textContent = formatRupiah(totalBelanja);
+  els.summarySisaSide.textContent = sisaText;
+  els.summaryItemSide.textContent = String(state.items.length);
+
+  els.heroTotalBelanja.textContent = formatRupiah(totalBelanja);
+
+  if (!state.items.length) {
+    els.validationHint.innerHTML = 'Belum ada item belanja. Tambahkan item terlebih dahulu untuk melihat ringkasan pengajuan.';
+  } else if (sisa < 0) {
+    els.validationHint.innerHTML = `<strong>Peringatan:</strong> total belanja melebihi dana masuk sebesar ${formatRupiah(Math.abs(sisa))}.`;
+  } else {
+    els.validationHint.innerHTML = `Ringkasan saat ini: <strong>${state.items.length} item</strong> dengan total belanja <strong>${formatRupiah(totalBelanja)}</strong>. Sisa dana <strong>${sisaText}</strong>.`;
+  }
+
+  syncHeroSummary();
 }
 
 function showSaveMessage(message, type) {
   els.saveMessage.textContent = message || '';
   els.saveMessage.className = 'save-message';
   if (type) els.saveMessage.classList.add(type);
+}
+
+function notifyValidation(message) {
+  showToast(message, 'error');
+  alert(message);
+}
+
+function showToast(message, type = 'info') {
+  if (!els.toastContainer) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  els.toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(8px)';
+  }, 3200);
+
+  setTimeout(() => {
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+  }, 3600);
 }
 
 function toNumber(value) {
@@ -628,15 +690,11 @@ function toNumber(value) {
 }
 
 function formatRupiah(value) {
-  return 'Rp ' + toNumber(value).toLocaleString('id-ID', {
-    maximumFractionDigits: 0
-  });
+  return 'Rp ' + toNumber(value).toLocaleString('id-ID', { maximumFractionDigits: 0 });
 }
 
 function formatNumber(value) {
-  return toNumber(value).toLocaleString('id-ID', {
-    maximumFractionDigits: 2
-  });
+  return toNumber(value).toLocaleString('id-ID', { maximumFractionDigits: 2 });
 }
 
 function escapeHtml(value) {
