@@ -6,7 +6,12 @@ const state = {
   selectedKegiatan: null,
   rekeningOptions: [],
   kegiatanOptions: [],
-  items: []
+  items: [],
+  history: {
+    totalBelanja: 0,
+    totalRows: 0,
+    loading: false
+  }
 };
 
 const els = {};
@@ -26,7 +31,7 @@ function bindElements() {
     'btnCariKegiatan','pilihKegiatan','bulanBelanja','satuan','hargaSatuan','jumlah','totalBelanjaPreview',
     'catatanSekolah','btnTambahItem','btnResetItem','summaryDana','summaryBelanja','summarySisa','summaryItem',
     'summaryDanaSide','summaryBelanjaSide','summarySisaSide','summaryItemSide','heroSchool','heroJob',
-    'heroTotalBelanja','validationHint','jobInsight','daftarItemBody','saveMessage','btnSimpanPengajuan',
+    'heroTotalBelanja','validationHint','historyNote','jobInsight','daftarItemBody','saveMessage','btnSimpanPengajuan',
     'btnKosongkanDaftar','toastContainer'
   ];
   ids.forEach(id => { els[id] = document.getElementById(id); });
@@ -47,11 +52,18 @@ function bindEvents() {
     btn.addEventListener('click', () => {
       els.jenisPekerjaan.value = btn.dataset.job || 'Input Baru';
       syncJobTypeUi();
+      fetchSummaryHistory();
     });
   });
 
-  els.jenisPekerjaan.addEventListener('change', syncJobTypeUi);
-  els.namaSekolah.addEventListener('change', syncHeroHeader);
+  els.jenisPekerjaan.addEventListener('change', () => {
+    syncJobTypeUi();
+    fetchSummaryHistory();
+  });
+  els.namaSekolah.addEventListener('change', () => {
+    syncHeroHeader();
+    fetchSummaryHistory();
+  });
   els.modeManual.addEventListener('change', handleManualModeChange);
 
   els.btnCariRekening.addEventListener('click', loadRekeningOptions);
@@ -82,6 +94,7 @@ async function initApp() {
     await loadSchools();
     await loadRekeningOptions();
     await loadKegiatanOptions();
+    await fetchSummaryHistory();
     updateSummary();
     showToast('Backend berhasil terhubung.', 'ok');
   } catch (error) {
@@ -156,6 +169,55 @@ async function loadSchools() {
     option.textContent = item.namaSekolah;
     els.namaSekolah.appendChild(option);
   });
+}
+
+
+async function fetchSummaryHistory() {
+  const sekolah = els.namaSekolah.value || '';
+  const jenisPekerjaan = els.jenisPekerjaan.value || '';
+
+  if (!sekolah) {
+    state.history = { totalBelanja: 0, totalRows: 0, loading: false };
+    if (els.historyNote) {
+      els.historyNote.textContent = 'Riwayat Google Sheet akan dibaca setelah sekolah dipilih.';
+    }
+    updateSummary();
+    return;
+  }
+
+  state.history.loading = true;
+  if (els.historyNote) {
+    els.historyNote.textContent = 'Membaca riwayat pengajuan dari Google Sheet...';
+  }
+
+  try {
+    const result = await callGas('getSummary', {
+      sekolah,
+      jenisPekerjaan
+    });
+
+    if (!result.success) {
+      throw new Error(result.message || 'Gagal membaca riwayat pengajuan.');
+    }
+
+    state.history = {
+      totalBelanja: toNumber(result.totalBelanja || 0),
+      totalRows: toNumber(result.totalRows || 0),
+      loading: false
+    };
+
+    if (els.historyNote) {
+      els.historyNote.innerHTML = `Riwayat Google Sheet: <strong>${state.history.totalRows}</strong> item sudah terkirim dengan total <strong>${formatRupiah(state.history.totalBelanja)}</strong>.`;
+    }
+  } catch (error) {
+    state.history.loading = false;
+    if (els.historyNote) {
+      els.historyNote.textContent = error.message;
+    }
+    showToast(error.message, 'error');
+  }
+
+  updateSummary();
 }
 
 async function searchReference() {
@@ -431,8 +493,9 @@ async function savePengajuan() {
     showSaveMessage(`Berhasil disimpan. ID Pengajuan: ${result.idPengajuan}. Total item: ${result.totalItems}.`, 'ok');
     state.items = [];
     renderItems();
+    await fetchSummaryHistory();
     updateSummary();
-    showToast('Pengajuan berhasil disimpan.', 'ok');
+    showToast('Pengajuan berhasil disimpan. Riwayat sudah diperbarui.', 'ok');
   } catch (error) {
     showSaveMessage(error.message, 'error');
     showToast(error.message, 'error');
@@ -472,24 +535,28 @@ function updateItemTotalPreview() {
 
 function updateSummary() {
   const totalDana = toNumber(els.totalDanaMasuk.value);
-  const totalBelanja = state.items.reduce((sum, item) => sum + toNumber(item.totalBelanja), 0);
-  const sisa = totalDana - totalBelanja;
+  const draftTotal = state.items.reduce((sum, item) => sum + toNumber(item.totalBelanja), 0);
+  const sudahTerkirim = toNumber(state.history.totalBelanja || 0);
+  const totalTerpakai = sudahTerkirim + draftTotal;
+  const sisa = totalDana - totalTerpakai;
   const sisaText = formatRupiah(sisa);
+
   els.summaryDana.textContent = formatRupiah(totalDana);
-  els.summaryBelanja.textContent = formatRupiah(totalBelanja);
+  els.summaryBelanja.textContent = formatRupiah(totalTerpakai);
   els.summarySisa.textContent = sisaText;
   els.summaryItem.textContent = String(state.items.length);
+
   els.summaryDanaSide.textContent = formatRupiah(totalDana);
-  els.summaryBelanjaSide.textContent = formatRupiah(totalBelanja);
+  els.summaryBelanjaSide.textContent = formatRupiah(totalTerpakai);
   els.summarySisaSide.textContent = sisaText;
   els.summaryItemSide.textContent = String(state.items.length);
 
-  if (!state.items.length) {
+  if (!state.items.length && !sudahTerkirim) {
     els.validationHint.textContent = 'Belum ada item belanja. Tambahkan item terlebih dahulu untuk melihat ringkasan pengajuan.';
   } else if (sisa < 0) {
-    els.validationHint.innerHTML = `Peringatan: total belanja melebihi dana masuk sebesar <strong>${formatRupiah(Math.abs(sisa))}</strong>.`;
+    els.validationHint.innerHTML = `Peringatan: total terpakai melebihi dana masuk sebesar <strong>${formatRupiah(Math.abs(sisa))}</strong>.`;
   } else {
-    els.validationHint.innerHTML = `Ringkasan saat ini: <strong>${state.items.length} item</strong> dengan total belanja <strong>${formatRupiah(totalBelanja)}</strong>. Sisa dana <strong>${sisaText}</strong>.`;
+    els.validationHint.innerHTML = `Sudah terkirim: <strong>${formatRupiah(sudahTerkirim)}</strong>. Draft saat ini: <strong>${formatRupiah(draftTotal)}</strong>. Sisa dana: <strong>${sisaText}</strong>.`;
   }
   syncHeroHeader();
 }
