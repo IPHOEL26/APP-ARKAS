@@ -4,266 +4,407 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Asisten Operator ARKAS</title>
+  <meta name="description" content="Aplikasi bantu operator ARKAS untuk pencarian referensi belanja, input pengajuan sekolah, pergeseran, dan perubahan." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-grid"></div>
+
   <div class="app-shell">
-    <header class="app-header">
-      <div>
-        <p class="eyebrow">Aplikasi Bantu Operator ARKAS</p>
-        <h1>Asisten Referensi & Pengajuan ARKAS</h1>
-        <p class="subtitle">Cari kode rekening, pilih kegiatan, lalu kirim pengajuan belanja sekolah ke Google Sheet pusat.</p>
+    <header class="hero-card">
+      <div class="hero-copy">
+        <div class="hero-topline">Aplikasi Bantu Operator ARKAS</div>
+        <h1>Asisten Referensi, Pengajuan, Pergeseran & Perubahan ARKAS</h1>
+        <p class="hero-subtitle">
+          Memudahkan sekolah mengirimkan usulan belanja tanpa menulis di kertas atau mengirim foto.
+          Operator cukup mencari uraian belanja, memilih referensi, lalu menyimpan pengajuan ke Google Sheet pusat.
+        </p>
+
+        <div class="hero-pills">
+          <span class="hero-pill">Input Baru</span>
+          <span class="hero-pill">Pergeseran</span>
+          <span class="hero-pill">Perubahan</span>
+          <span class="hero-pill">Cari Cepat Referensi</span>
+        </div>
       </div>
-      <div class="status-card" id="connectionStatus">
-        <span class="status-dot warning"></span>
-        <span>Belum dicek</span>
-      </div>
+
+      <aside class="hero-side">
+        <div class="status-badge" id="connectionStatus">
+          <span class="status-dot warning"></span>
+          <span>Menghubungkan backend...</span>
+        </div>
+
+        <div class="mini-dashboard">
+          <div class="mini-card">
+            <span class="mini-label">Sekolah Dipilih</span>
+            <strong id="heroSchool">Belum dipilih</strong>
+          </div>
+          <div class="mini-card">
+            <span class="mini-label">Jenis Proses</span>
+            <strong id="heroJob">Input Baru</strong>
+          </div>
+          <div class="mini-card accent">
+            <span class="mini-label">Ringkasan Total Belanja</span>
+            <strong id="heroTotalBelanja">Rp 0</strong>
+          </div>
+        </div>
+      </aside>
     </header>
 
-    <main class="layout">
-      <section class="panel">
-        <div class="panel-title">
-          <span class="step">1</span>
-          <div>
-            <h2>Identitas Pengajuan</h2>
-            <p>Pilih sekolah dan jenis pekerjaan.</p>
+    <section class="top-summary-strip">
+      <div class="summary-stat">
+        <span class="summary-icon">💰</span>
+        <div>
+          <small>Total Dana Masuk</small>
+          <strong id="summaryDana">Rp 0</strong>
+        </div>
+      </div>
+      <div class="summary-stat">
+        <span class="summary-icon">🧾</span>
+        <div>
+          <small>Total Belanja</small>
+          <strong id="summaryBelanja">Rp 0</strong>
+        </div>
+      </div>
+      <div class="summary-stat">
+        <span class="summary-icon">📉</span>
+        <div>
+          <small>Sisa Dana</small>
+          <strong id="summarySisa">Rp 0</strong>
+        </div>
+      </div>
+      <div class="summary-stat">
+        <span class="summary-icon">📦</span>
+        <div>
+          <small>Jumlah Item</small>
+          <strong id="summaryItem">0</strong>
+        </div>
+      </div>
+    </section>
+
+    <main class="content-grid">
+      <div class="main-column">
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Langkah 1</p>
+              <h2>Identitas Pengajuan</h2>
+              <p class="section-desc">Pilih sekolah, isi identitas penginput, dan tentukan jenis pekerjaan ARKAS.</p>
+            </div>
+            <div class="section-icon">🏫</div>
           </div>
-        </div>
 
-        <div class="form-grid two">
-          <label>
-            <span>Nama Sekolah</span>
-            <select id="namaSekolah" required>
-              <option value="">Memuat daftar sekolah...</option>
-            </select>
-          </label>
-
-          <label>
-            <span>Jenis Pekerjaan</span>
-            <select id="jenisPekerjaan" required>
-              <option value="Input Baru">Input Baru</option>
-              <option value="Pergeseran">Pergeseran</option>
-              <option value="Perubahan">Perubahan</option>
-            </select>
-          </label>
-
-          <label>
-            <span>Nama Penginput</span>
-            <input id="namaPenginput" type="text" placeholder="Contoh: Kepala Sekolah / Bendahara" />
-          </label>
-
-          <label>
-            <span>No HP Penginput</span>
-            <input id="noHpPenginput" type="text" placeholder="Contoh: 08xxxxxxxxxx" />
-          </label>
-
-          <label>
-            <span>Total Dana Masuk / Pagu</span>
-            <input id="totalDanaMasuk" type="number" min="0" placeholder="Contoh: 100000000" />
-          </label>
-
-          <label>
-            <span>Tahap</span>
-            <input id="tahap" type="text" placeholder="Contoh: Tahap 1 / Tahap 2" />
-          </label>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-title">
-          <span class="step">2</span>
-          <div>
-            <h2>Cari Uraian Belanja</h2>
-            <p>Pilih dari referensi. Jika tidak ada, gunakan input manual.</p>
+          <div class="job-type-wrap">
+            <button type="button" class="job-chip active" data-job="Input Baru">Input Baru</button>
+            <button type="button" class="job-chip" data-job="Pergeseran">Pergeseran</button>
+            <button type="button" class="job-chip" data-job="Perubahan">Perubahan</button>
           </div>
-        </div>
 
-        <div class="search-row">
-          <input id="keywordReferensi" type="search" placeholder="Cari uraian belanja, contoh: semen, paku, kabel, buku" />
-          <button id="btnCariReferensi" class="btn primary" type="button">Cari</button>
-        </div>
-
-        <div class="hint">
-          Urutan kerja: cari/pilih uraian belanja → kode rekening dan kegiatan otomatis terisi. Jika tidak ditemukan, aktifkan input manual.
-        </div>
-
-        <div id="searchInfo" class="search-info"></div>
-        <div id="hasilReferensi" class="results"></div>
-
-        <div class="manual-toggle">
-          <label class="checkbox-line">
-            <input id="modeManual" type="checkbox" />
-            <span>Uraian tidak ada di referensi, gunakan input manual</span>
-          </label>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-title">
-          <span class="step">3</span>
-          <div>
-            <h2>Detail Belanja</h2>
-            <p>Lengkapi jumlah, bulan, harga, dan catatan.</p>
+          <div id="jobInsight" class="info-banner neutral">
+            Mode <strong>Input Baru</strong>: digunakan untuk menyusun belanja baru sesuai dana masuk atau pagu yang tersedia.
           </div>
-        </div>
 
-        <div id="selectedReferenceBox" class="selected-box empty">
-          Belum ada referensi yang dipilih.
-        </div>
-
-        <div id="manualPanel" class="manual-panel hidden">
-          <h3>Input Manual</h3>
           <div class="form-grid two">
-            <label class="span-two">
-              <span>Uraian Manual</span>
-              <input id="uraianManual" type="text" placeholder="Tulis uraian belanja yang tidak ada di referensi" />
-            </label>
-
-            <label>
-              <span>Cari Kode Rekening</span>
-              <div class="inline-input">
-                <input id="keywordRekening" type="search" placeholder="Contoh: bahan, modal, jasa" />
-                <button id="btnCariRekening" class="btn" type="button">Cari</button>
-              </div>
-            </label>
-
-            <label>
-              <span>Pilih Kode Rekening</span>
-              <select id="pilihRekening">
-                <option value="">Cari rekening dulu...</option>
+            <label class="field">
+              <span class="field-label">Nama Sekolah</span>
+              <select id="namaSekolah" required>
+                <option value="">Memuat daftar sekolah...</option>
               </select>
             </label>
 
-            <label>
-              <span>Cari Kegiatan</span>
-              <div class="inline-input">
-                <input id="keywordKegiatan" type="search" placeholder="Contoh: pemeliharaan, administrasi" />
-                <button id="btnCariKegiatan" class="btn" type="button">Cari</button>
-              </div>
-            </label>
-
-            <label>
-              <span>Pilih Kegiatan</span>
-              <select id="pilihKegiatan">
-                <option value="">Cari kegiatan dulu...</option>
+            <label class="field">
+              <span class="field-label">Jenis Pekerjaan</span>
+              <select id="jenisPekerjaan" required>
+                <option value="Input Baru">Input Baru</option>
+                <option value="Pergeseran">Pergeseran</option>
+                <option value="Perubahan">Perubahan</option>
               </select>
             </label>
+
+            <label class="field">
+              <span class="field-label">Nama Penginput</span>
+              <input id="namaPenginput" type="text" placeholder="Contoh: Kepala Sekolah / Bendahara / Operator" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">No. HP Penginput</span>
+              <input id="noHpPenginput" type="text" placeholder="Contoh: 08xxxxxxxxxx" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Total Dana Masuk / Pagu</span>
+              <input id="totalDanaMasuk" type="number" min="0" placeholder="Contoh: 100000000" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Tahap</span>
+              <input id="tahap" type="text" placeholder="Contoh: Tahap 1 / Tahap 2" />
+            </label>
           </div>
-        </div>
+        </section>
 
-        <div class="form-grid three">
-          <label>
-            <span>Bulan Belanja</span>
-            <select id="bulanBelanja">
-              <option value="">Pilih bulan</option>
-              <option>Januari</option>
-              <option>Februari</option>
-              <option>Maret</option>
-              <option>April</option>
-              <option>Mei</option>
-              <option>Juni</option>
-              <option>Juli</option>
-              <option>Agustus</option>
-              <option>September</option>
-              <option>Oktober</option>
-              <option>November</option>
-              <option>Desember</option>
-            </select>
-          </label>
-
-          <label>
-            <span>Satuan</span>
-            <input id="satuan" type="text" placeholder="Buah / Paket / Lembar" />
-          </label>
-
-          <label>
-            <span>Harga Satuan</span>
-            <input id="hargaSatuan" type="number" min="0" placeholder="0" />
-          </label>
-
-          <label>
-            <span>Jumlah</span>
-            <input id="jumlah" type="number" min="0" step="0.01" placeholder="0" />
-          </label>
-
-          <label>
-            <span>Total Belanja</span>
-            <input id="totalBelanjaPreview" type="text" readonly value="Rp 0" />
-          </label>
-
-          <label>
-            <span>Catatan Sekolah</span>
-            <input id="catatanSekolah" type="text" placeholder="Opsional" />
-          </label>
-        </div>
-
-        <div class="action-row">
-          <button id="btnTambahItem" class="btn primary" type="button">Tambah ke Daftar</button>
-          <button id="btnResetItem" class="btn ghost" type="button">Reset Item</button>
-        </div>
-      </section>
-
-      <section class="panel full-width">
-        <div class="panel-title">
-          <span class="step">4</span>
-          <div>
-            <h2>Daftar Belanja yang Akan Dikirim</h2>
-            <p>Periksa kembali sebelum menyimpan ke Google Sheet.</p>
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Langkah 2</p>
+              <h2>Cari Uraian Belanja</h2>
+              <p class="section-desc">Cari uraian belanja dari referensi. Jika tidak ada, aktifkan input manual.</p>
+            </div>
+            <div class="section-icon">🔎</div>
           </div>
-        </div>
 
-        <div class="summary-grid">
-          <div class="summary-card">
-            <span>Total Dana Masuk</span>
-            <strong id="summaryDana">Rp 0</strong>
+          <div class="quick-keywords">
+            <button class="keyword-pill" type="button" data-keyword="buku">buku</button>
+            <button class="keyword-pill" type="button" data-keyword="semen">semen</button>
+            <button class="keyword-pill" type="button" data-keyword="ATK">ATK</button>
+            <button class="keyword-pill" type="button" data-keyword="printer">printer</button>
+            <button class="keyword-pill" type="button" data-keyword="honor">honor</button>
+            <button class="keyword-pill" type="button" data-keyword="laptop">laptop</button>
           </div>
-          <div class="summary-card">
-            <span>Total Belanja</span>
-            <strong id="summaryBelanja">Rp 0</strong>
-          </div>
-          <div class="summary-card">
-            <span>Sisa Dana</span>
-            <strong id="summarySisa">Rp 0</strong>
-          </div>
-          <div class="summary-card">
-            <span>Jumlah Item</span>
-            <strong id="summaryItem">0</strong>
-          </div>
-        </div>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Bulan</th>
-                <th>Uraian</th>
-                <th>Kode Rekening</th>
-                <th>Kegiatan</th>
-                <th>Satuan</th>
-                <th>Harga</th>
-                <th>Jumlah</th>
-                <th>Total</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="daftarItemBody">
-              <tr>
-                <td colspan="10" class="empty-table">Belum ada item belanja.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+          <div class="search-bar">
+            <div class="search-input-wrap">
+              <span class="search-icon">⌕</span>
+              <input id="keywordReferensi" type="search" placeholder="Cari uraian belanja, contoh: semen, paku, kabel, buku, tinta printer" />
+            </div>
+            <button id="btnCariReferensi" class="btn btn-primary" type="button">Cari Referensi</button>
+          </div>
 
-        <div id="saveMessage" class="save-message"></div>
+          <div class="info-banner soft">
+            Urutan kerja: <strong>cari / pilih uraian belanja</strong> → <strong>kode rekening dan kegiatan otomatis terisi</strong>.
+            Jika tidak ditemukan, aktifkan mode input manual.
+          </div>
 
-        <div class="action-row end">
-          <button id="btnSimpanPengajuan" class="btn success" type="button">Simpan ke Pengajuan_ARKAS</button>
-          <button id="btnKosongkanDaftar" class="btn ghost" type="button">Kosongkan Daftar</button>
-        </div>
-      </section>
+          <div id="searchInfo" class="helper-text"></div>
+          <div id="hasilReferensi" class="results-grid"></div>
+
+          <div class="manual-switch-card">
+            <label class="checkbox-line">
+              <input id="modeManual" type="checkbox" />
+              <span>Uraian tidak ada di referensi, gunakan input manual</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Langkah 3</p>
+              <h2>Detail Belanja</h2>
+              <p class="section-desc">Lengkapi bulan belanja, satuan, harga, jumlah, dan catatan sekolah.</p>
+            </div>
+            <div class="section-icon">📝</div>
+          </div>
+
+          <div id="selectedReferenceBox" class="reference-highlight empty">
+            Belum ada referensi yang dipilih.
+          </div>
+
+          <div id="manualPanel" class="manual-panel hidden">
+            <div class="subsection-head">
+              <h3>Input Manual</h3>
+              <p>Gunakan ini jika uraian tidak ditemukan di referensi. Kode rekening dan kegiatan tetap wajib dipilih.</p>
+            </div>
+
+            <div class="form-grid two">
+              <label class="field span-two">
+                <span class="field-label">Uraian Manual</span>
+                <input id="uraianManual" type="text" placeholder="Tulis uraian belanja yang tidak ada di referensi" />
+              </label>
+
+              <div class="combo-field">
+                <label class="field no-bottom">
+                  <span class="field-label">Cari Kode Rekening</span>
+                  <div class="inline-control">
+                    <input id="keywordRekening" type="search" placeholder="Contoh: bahan, modal, jasa" />
+                    <button id="btnCariRekening" class="btn btn-secondary" type="button">Cari</button>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label">Pilih Kode Rekening</span>
+                  <select id="pilihRekening">
+                    <option value="">Cari rekening dulu...</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="combo-field">
+                <label class="field no-bottom">
+                  <span class="field-label">Cari Kegiatan</span>
+                  <div class="inline-control">
+                    <input id="keywordKegiatan" type="search" placeholder="Contoh: pemeliharaan, administrasi" />
+                    <button id="btnCariKegiatan" class="btn btn-secondary" type="button">Cari</button>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field-label">Pilih Kegiatan</span>
+                  <select id="pilihKegiatan">
+                    <option value="">Cari kegiatan dulu...</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid three">
+            <label class="field">
+              <span class="field-label">Bulan Belanja</span>
+              <select id="bulanBelanja">
+                <option value="">Pilih bulan</option>
+                <option>Januari</option>
+                <option>Februari</option>
+                <option>Maret</option>
+                <option>April</option>
+                <option>Mei</option>
+                <option>Juni</option>
+                <option>Juli</option>
+                <option>Agustus</option>
+                <option>September</option>
+                <option>Oktober</option>
+                <option>November</option>
+                <option>Desember</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Satuan</span>
+              <input id="satuan" type="text" placeholder="Buah / Paket / Lembar" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Harga Satuan</span>
+              <input id="hargaSatuan" type="number" min="0" placeholder="0" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Jumlah</span>
+              <input id="jumlah" type="number" min="0" step="0.01" placeholder="0" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Total Belanja</span>
+              <input id="totalBelanjaPreview" type="text" readonly value="Rp 0" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Catatan Sekolah</span>
+              <input id="catatanSekolah" type="text" placeholder="Opsional" />
+            </label>
+          </div>
+
+          <div class="button-row">
+            <button id="btnTambahItem" class="btn btn-primary" type="button">Tambah ke Daftar</button>
+            <button id="btnResetItem" class="btn btn-ghost" type="button">Reset Item</button>
+          </div>
+        </section>
+      </div>
+
+      <aside class="side-column">
+        <section class="panel sticky-panel">
+          <div class="section-head compact">
+            <div>
+              <p class="section-kicker">Ringkasan</p>
+              <h2>Daftar Belanja</h2>
+            </div>
+            <div class="section-icon">📊</div>
+          </div>
+
+          <div class="side-summary-list">
+            <div class="side-summary-item">
+              <span>Total Dana</span>
+              <strong id="summaryDanaSide">Rp 0</strong>
+            </div>
+            <div class="side-summary-item">
+              <span>Total Belanja</span>
+              <strong id="summaryBelanjaSide">Rp 0</strong>
+            </div>
+            <div class="side-summary-item">
+              <span>Sisa Dana</span>
+              <strong id="summarySisaSide">Rp 0</strong>
+            </div>
+            <div class="side-summary-item">
+              <span>Jumlah Item</span>
+              <strong id="summaryItemSide">0</strong>
+            </div>
+          </div>
+
+          <div class="info-banner caution" id="validationHint">
+            Belum ada item belanja. Tambahkan item terlebih dahulu untuk melihat ringkasan pengajuan.
+          </div>
+
+          <div id="saveMessage" class="save-message"></div>
+
+          <div class="stack-buttons">
+            <button id="btnSimpanPengajuan" class="btn btn-primary btn-lg" type="button">Simpan ke Google Sheet</button>
+            <button id="btnKosongkanDaftar" class="btn btn-danger-outline" type="button">Kosongkan Semua Daftar</button>
+          </div>
+        </section>
+      </aside>
     </main>
+
+    <section class="panel panel-table">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">Langkah 4</p>
+          <h2>Daftar Belanja yang Akan Dikirim</h2>
+          <p class="section-desc">Periksa kembali daftar belanja sebelum dikirim ke sheet <strong>Pengajuan_ARKAS</strong>.</p>
+        </div>
+        <div class="section-icon">📚</div>
+      </div>
+
+      <div class="table-toolbar">
+        <div class="toolbar-badge">Sheet Tujuan: <strong>Pengajuan_ARKAS</strong></div>
+        <div class="toolbar-badge">Backend: <strong>Google Apps Script</strong></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Bulan</th>
+              <th>Uraian</th>
+              <th>Kode Rekening</th>
+              <th>Kegiatan</th>
+              <th>Satuan</th>
+              <th>Harga</th>
+              <th>Jumlah</th>
+              <th>Total</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="daftarItemBody">
+            <tr>
+              <td colspan="10" class="empty-table">
+                <div class="empty-state">
+                  <div class="empty-emoji">🗂️</div>
+                  <div>
+                    <strong>Belum ada item belanja.</strong>
+                    <p>Tambahkan item dari referensi atau gunakan input manual.</p>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <div>
+        <strong>Asisten Operator ARKAS</strong>
+        <p>Frontend GitHub Pages · Backend Google Apps Script · Data tersimpan pada Google Sheet pusat.</p>
+      </div>
+      <div class="footer-year">&copy; <span id="currentYear"></span> Operator ARKAS</div>
+    </footer>
   </div>
+
+  <div id="toastContainer" class="toast-container"></div>
 
   <script src="script.js"></script>
 </body>
