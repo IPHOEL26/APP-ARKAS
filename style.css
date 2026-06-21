@@ -615,3 +615,66 @@ tbody td {
   .section-title h2 { font-size: 20px; }
   .toast { min-width: auto; max-width: calc(100vw - 28px); }
 }
+
+/* V4: warna berbeda untuk setiap kolom/langkah */
+.card--step1 {
+  background:
+    linear-gradient(135deg, rgba(232, 240, 255, .96), rgba(255, 255, 255, .92)),
+    var(--surface);
+  border-color: #c9dbff;
+}
+
+.card--step2 {
+  background:
+    linear-gradient(135deg, rgba(232, 255, 244, .96), rgba(255, 255, 255, .92)),
+    var(--surface);
+  border-color: #bfead6;
+}
+
+.card--step3 {
+  background:
+    linear-gradient(135deg, rgba(255, 248, 222, .96), rgba(255, 255, 255, .92)),
+    var(--surface);
+  border-color: #f2d991;
+}
+
+.card--step4 {
+  background:
+    linear-gradient(135deg, rgba(246, 236, 255, .96), rgba(255, 255, 255, .92)),
+    var(--surface);
+  border-color: #ddc7ff;
+}
+
+.card--summary {
+  background:
+    linear-gradient(135deg, rgba(255, 237, 236, .96), rgba(255, 250, 240, .94)),
+    var(--surface);
+  border-color: #ffc7bd;
+}
+
+.card--step1 .section-mark { background: linear-gradient(135deg, #dbe8ff, #bcd2ff); color: #1d4ed8; }
+.card--step2 .section-mark { background: linear-gradient(135deg, #d8fae8, #b2f0cf); color: #0f7a4d; }
+.card--step3 .section-mark { background: linear-gradient(135deg, #fff1bf, #ffe08a); color: #9a6500; }
+.card--step4 .section-mark { background: linear-gradient(135deg, #efe0ff, #dcc3ff); color: #6d28d9; }
+.card--summary .section-mark { background: linear-gradient(135deg, #ffe3dc, #ffd2c7); color: #c2410c; }
+
+.card--step1 .section-kicker { color: #1d4ed8; }
+.card--step2 .section-kicker { color: #0f7a4d; }
+.card--step3 .section-kicker { color: #9a6500; }
+.card--step4 .section-kicker { color: #6d28d9; }
+.card--summary .section-kicker { color: #c2410c; }
+
+.history-note {
+  margin: 10px 0 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(255,255,255,.75);
+  color: #5c4a2d;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.history-note strong {
+  color: #8a4a00;
+}
