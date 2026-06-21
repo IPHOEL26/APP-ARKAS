@@ -54,7 +54,7 @@
           </div>
           <div class="visual-card visual-card--three">
             <span>💵</span>
-            <strong>Total Belanja</strong>
+            <strong>Total Terpakai</strong>
             <small id="heroTotalBelanja">Rp 0</small>
           </div>
         </div>
@@ -73,7 +73,7 @@
       <article class="stat-card stat-card--blue">
         <div class="stat-card__icon">🧾</div>
         <div class="stat-card__body">
-          <span class="stat-label">Total Belanja</span>
+          <span class="stat-label">Total Terpakai</span>
           <strong id="summaryBelanja">Rp 0</strong>
         </div>
       </article>
@@ -89,14 +89,14 @@
       <article class="stat-card stat-card--purple">
         <div class="stat-card__icon">📦</div>
         <div class="stat-card__body">
-          <span class="stat-label">Jumlah Item</span>
+          <span class="stat-label">Item Draft</span>
           <strong id="summaryItem">0</strong>
         </div>
       </article>
     </section>
 
     <main class="layout">
-      <section class="card card--main">
+      <section class="card card--main card--step1">
         <div class="section-title">
           <div>
             <span class="section-kicker">Langkah 1</span>
@@ -155,7 +155,7 @@
         </div>
       </section>
 
-      <aside class="card card--side side-summary">
+      <aside class="card card--side side-summary card--summary">
         <div class="section-title section-title--compact">
           <div>
             <span class="section-kicker">Ringkasan</span>
@@ -170,7 +170,7 @@
             <strong id="summaryDanaSide">Rp 0</strong>
           </div>
           <div class="mini-summary">
-            <span>Total Belanja</span>
+            <span>Total Terpakai</span>
             <strong id="summaryBelanjaSide">Rp 0</strong>
           </div>
           <div class="mini-summary">
@@ -178,7 +178,7 @@
             <strong id="summarySisaSide">Rp 0</strong>
           </div>
           <div class="mini-summary">
-            <span>Jumlah Item</span>
+            <span>Item Draft</span>
             <strong id="summaryItemSide">0</strong>
           </div>
         </div>
@@ -186,6 +186,8 @@
         <div class="alert-box" id="validationHint">
           Belum ada item belanja. Tambahkan item terlebih dahulu untuk melihat ringkasan pengajuan.
         </div>
+
+        <div class="history-note" id="historyNote">Riwayat Google Sheet akan dibaca setelah sekolah dipilih.</div>
 
         <div id="saveMessage" class="save-message"></div>
 
@@ -195,7 +197,7 @@
         </div>
       </aside>
 
-      <section class="card card--main">
+      <section class="card card--main card--step2">
         <div class="section-title">
           <div>
             <span class="section-kicker">Langkah 2</span>
@@ -232,7 +234,7 @@
         </label>
       </section>
 
-      <section class="card card--main">
+      <section class="card card--main card--step3">
         <div class="section-title">
           <div>
             <span class="section-kicker">Langkah 3</span>
@@ -342,7 +344,7 @@
         </div>
       </section>
 
-      <section class="card card--main card--full">
+      <section class="card card--main card--full card--step4">
         <div class="section-title">
           <div>
             <span class="section-kicker">Langkah 4</span>
